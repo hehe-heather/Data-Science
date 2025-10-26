@@ -16,7 +16,7 @@ library(DBI)
 library(RMySQL)
 
 USER <- 'root'          # user id, created during database installation
-PASSWORD <- 'BBS20244061'  # password, created during database installation
+PASSWORD <- 'PASSWORD'  # password, created during database installation
 HOST <- 'localhost'     # leave as localhost - this means "use the PC you are running R on"
 DBNAME <- 'world'       # the database you'd like to connect, created during database installation
 ```
@@ -92,4 +92,5 @@ for (tbl in tables) {
 ```{r extract data}
 extracted <- dbGetQuery(con, "SELECT * FROM employees LIMIT 5")
 extracted
+
 ```
