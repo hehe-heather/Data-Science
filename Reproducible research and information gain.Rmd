@@ -1,0 +1,236 @@
+---
+title: "Reproducible Research, Entropy and Information Gain"
+author: "Heather He "
+output: 
+  pdf_document:
+      toc: TRUE
+---
+
+# File paths and data
+
+Last week we considered a data frame which comes with the base R installation (mtcars). Most of the time, however, the data we care about is not already in R. Instead, our data is generally in a file somewhere on our computer and we need to tell R where to look for it. 
+
+To begin, always save your R Markdown file in the same folder as the dataset(s) you will be working with.
+
+Next, in RStudio go to the top meanu and click: [Session] → [Set Working Directory] → [To Source File Location].
+
+This ensures that your R Markdown file and your datasets share the same working directory. When you later read in an external dataset, R will automatically look in this folder to find and import the file.
+
+## Task 1: Import and export data frames
+For this task, please 
+- Go to Blackboard and download the file "mushroom.csv". Save it in your working folder (the same location as your R Markdown file).
+- Load the data into R and store it in an object named `mush` (You may find the function `read.csv()` useful);
+- Select all the rows from three columns, namely, `"EorP","CapShape","CapColor"`, and save this subset as an object named  `mush_subset`;
+- Export the `mush_subset` object to your working directory using the function `write.csv()`. The output file name should be "mush_subset.csv".  
+
+
+```{r,LoadData}
+
+# Load mushrooms data and save in "mush"
+mush <- read.csv("mushroom.csv")
+mush_subset <- mush[,c("EorP","CapShape","CapColor")]
+write.csv(mush_subset, "mush_subset.csv", row.names = FALSE)
+
+```
+
+
+## Task 2: Explore the data frame
+We have now loaded in the data for today's workshop into an object called "mush". Before we do anything else, lets go explore this data frame and see what its about. 
+Please apply the following functions to `mush`: `head()`, `colnames()`, `str()` and `summary()`. 
+
+```{r,InspectData}
+
+head(mush)
+
+colnames(mush)
+
+str(mush)
+
+summary(mush)
+
+```
+
+
+Obviously our data set is about mushrooms. Each row relates to a mushroom, while the columns are a set of features for each column, e.g. what is the shape of the stalk or whether it has bruises or what it smells like. From the head function, we can also see that most of our data is in the form of letters. 
+
+The second column, "EorP", is an abbreviation for "Edible or Poisonous", which can be pretty important. It is also the motivation for today's workshop. We are going to explore entropy and information gain with respect to the poison status of mushrooms to see how it works and how we can identify whether features are important or not for predicting poison status. This content will be built on in later weeks to introduce powerful algorithms such as decision trees and random forests. The data set we are using has been taken from and is described at https://archive.ics.uci.edu/ml/machine-learning-databases/mushroom/agaricus-lepiota.names, and is a well known machine learning data set.
+
+
+
+# Entropy and Information Gain
+
+Entropy is a measure of purity (or impurity), and it measures the amount of disorder in a data set. Information gain is the change in entropy achieved by adding new information. The equations are:
+
+$$\text{Shannon's Entropy} = -\sum_{i=1}^{n} P(X_i)log{_2}P(X_i)$$
+
+$$\text{Information Gain}(parent,children) = \text{Shannon's Entropy}(parent) - \sum_{i=1}^{n} P(child_i) \text{Shannon's Entropy}(child_i)$$
+
+We will focus on entropy first, and then look at information gain after getting comfortable with that.
+
+
+## Task 3: Calculate entropy for feature "EorP"
+Let's look at the mushroom data. The table function is a useful function which tabulates the number of times it sees combinations of values. Lets start out by considering only the "EorP" column, but we will look at using more than one column later.
+
+- Run the command `table(mush[,"EorP"])` to display the frequency of “Edible” and “Poisonous” mushrooms. Save the output as an object named `EdibleCounts`;
+- Calculate the proportion of “Edible” and “Poisonous” mushrooms and store the results in `EdibleProbs`. You can use `sum(EdibleCounts)` to get the total number of mushrooms. 
+- Using these probabilities, compute the entropy of the dataset and save the result as `OrigEntropy`. Hint: our entropy is pretty close to one. 
+
+```{r,Table}
+EdibleCounts <- table(mush[,"EorP"])
+EdibleProbs <- EdibleCounts/sum(EdibleCounts)
+OrigEntropy <- -(EdibleProbs[1] * log2(EdibleProbs[1]) + EdibleProbs[2] * log2(EdibleProbs[2]))
+OrigEntropy
+
+```
+
+
+We have a pretty even split between edible and poisonous it seems. As we would expect, our entropy is pretty close to its maximum because there are almost equal numbers of edible and poisonous mushrooms. 
+
+
+
+## Task 4: Information gain from introducing "CapColor"
+
+Now that we are comfortable with looking at entropy, we can move on to information gain - the reduction in entropy when we add information. The information we are adding to the mushroom problem will be the other columns we have in addition to `EorP`. We'll consider one column to start: `CapColor`.
+
+To work out information gain, we need to take the starting entropy (which we have already worked out and stored in`OrigEntropy`), and subtract `OrigEntropy` with the new information (which we need to work out). To work out the new entropy, we must work out the entropy of `EorP` in each grouping of `CapColor`. To work out the number of edible or poisonous mushrooms under each value of `CapColor`, we can use the table function again - `table(mush[,"CapColor"],mush[,"EorP"])`. Run the command and see how this function gives two vectors / columns which report the number of times it sees each combination of colour and poisonous status. 
+
+In the table, each row represents a CapColor group, and each column shows how the mushrooms in that group are split between “Edible” and “Poisonous.”
+
+```{r,Table2}
+table(mush[,"CapColor"],mush[,"EorP"])           # Count of EorP and CapColour combinations
+```
+
+For this task:
+
+- Tabulate the two columns using `table(mush[,"CapColor"],mush[,"EorP"])` to count the number of edible and poisonous mushrooms for each cap colour.Save this table as `CapTable`. Each cap colour represents a child node in the decision tree.
+
+- Work out the probability of each CapColor by dividing the total number of mushrooms of that colour by the total number of mushrooms overall. Note that you can use `rowSums(CapTable)` to get the total mushrooms for each colour, and `sum(CapTable)` to get the overall total. Save these probabilities in an object named `ChildProb`.
+
+- For each cap colour group, calculate the proportion of edible and poisonous mushrooms. This can be done by dividing each row in `CapTable` by its row total. For example, for the cap colour “b” (buff), the corresponding row should contain two values — one for “e” (0.2857) and one for “p” (poisonous). Save this as an object named `ClassProb`. 
+
+- Using the entropy formula, compute the entropy for each row (each cap colour) based on the class probabilities in `ClassProb`. Note that R support element-wise operation and thus you can use `-(ClassProb[,1] * log2(ClassProb[,1]) + ClassProb[,2] * log2(ClassProb[,2]))` to calculate the entropy for all the rows all at once. Save the results in an object named `ChildEntropy`.
+
+- Each row of `ChildEntropy` should now contain the entropy value for one cap colour.For group "b" (buff) the corresponding entropy should be 0.8631. Now handle undefined (NaN) entropy values: Some cap colours (e.g. "r" for green, "u" for purple) may contain only one class of mushroom, resulting in pure nodes. You can call `ClassProb` to verify this. In such cases, R will produce NaN values because 0 * log2(0) is undefined. Replace NaN values with zero. You can use `ifelse()` function to replace NaN values in `ChildEntropy` with zero.
+
+- Now compute the weighted average entropy. To do this, multiply the probability of each child node ( `ChildProb`) by its corresponding entropy (`ChildEntropy`). Sum all these products to calculate the weighted average entropy across all cap colours. Save this in an object named `NewEntropy`. After completing the calculation, your NewEntropy value should be around 0.9630.
+
+- Now that we have our new entropy, we can compare it to our original entropy to work out the information gain associated with `CapColour`. 
+
+
+```{r,Entropy2}
+CapTable <- table(mush[,"CapColor"],mush[,"EorP"])#Proportion of Edible and Poisonous of each colour
+ChildProb <- rowSums(CapTable) / sum(CapTable)    #Probability of each colour
+ClassProb <- CapTable / rowSums(CapTable)         #Poisonous/Edible probabilities in each colour
+ChildEntropy <- -(ClassProb[,1] * log2(ClassProb[,1]) + ClassProb[,2] * log2(ClassProb[,2])) #Entropy                               
+ChildEntropy <- ifelse(test=is.na(ChildEntropy), yes=0, no=ChildEntropy) #Change NaNs to zero
+NewEntropy <- sum(ChildEntropy * ChildProb)       #category entropy * category probability
+OrigEntropy - NewEntropy
+
+```
+
+## Task 5: Select the most and least informative feature. 
+
+In the previous task, we calculated that adding `CapColor` as a splitting attribute gives an information gain of 0.036.
+
+To decide whether this is a large or small gain, we need to compare it with the information gains for other possible attributes. This comparison will help us to assess how informative `CapColor` really is, and identify which features are most and least useful in predicting whether a mushroom is Edible or Poisonous.
+
+You are provided with code that calculates the information gain for each column in the dataset and visualises all the information gains in one bar chart. 
+
+Your task to answer the following questions: 
+
+Based on the output of the code: Which attribute appears to be the most/least informative (highest/lowest information gain)?
+
+
+```{r,IGDF}
+
+ColumnVector <- colnames(mush)                  #Column names of mush
+ColumnVector <- ColumnVector[c(-1)]             #Remove the first column name EorP
+
+#Lets make a data frame of possible features 
+FeatureIG <- data.frame(Features = ColumnVector) 
+#Initialise a column for entropy values (we'll fill it in next)
+FeatureIG$IG <- 0                                
+
+#Now lets work out each of our entropies
+#For loop to apply what we developed in the previous task each column 
+for(i in ColumnVector) {
+  
+  ChildTable <- table(mush[,i],mush[,"EorP"])        #Replaced CapColour with 'i'
+  ChildProb <- rowSums(ChildTable) / sum(ChildTable) #Probability of each child
+  ClassProb <- ChildTable / rowSums(ChildTable)      #Poison probabilities in each category
+  #Entropy in each child
+  ChildEntropy <- -ClassProb[,1] * log2(ClassProb[,1]) - ClassProb[,2] * log2(ClassProb[,2]) 
+  ChildEntropy <- ifelse(test=is.na(ChildEntropy), yes=0, no=ChildEntropy) #NaNs to zero
+  NewEntropy <- sum(ChildEntropy * ChildProb)        #category entropy * category probability
+  
+  #Save the result in our data frame - index a column from data frame with a logical statement
+  FeatureIG$IG[FeatureIG$Features == i] <- (OrigEntropy - NewEntropy)
+  
+  #Return IG in a nice format
+}
+
+
+```
+
+
+Now plot our resulting dataframe:
+
+```{r,IGPlot}
+FeatureIG <- FeatureIG[order(-FeatureIG$IG), ]       #Order dataframe by IG (minus sign means descending order)
+
+barplot(FeatureIG$IG,                                #Create barplot with IG of dataframe
+        names.arg = FeatureIG$Features,              #Name of each bar is the corresponding feature
+        main = "Information Gain by Feature",        #Title of bar plot
+        ylim = c(0,1),                               #Boundaries of y-axis
+        ylab = "Information Gain",                   #Label of y-axis
+        cex.names = 0.7,                             #Text size of names
+        las=2)                                       #Rotate names
+box()
+```
+
+Now it is obvious at a glance that Odor is the best by far. You can also tell which are the next few best features, and VeliType is the worst. Play around with the arguments used in the barplot function to see how they change the resulting plot.
+
+
+
+# Summary and Resources
+
+Today we have looked at using entorpy to determine what features are informative when deciding whether a mushroom is poisonous or edible. We have also introduced more R that you need to make yourselves familiar with. This week we built upon last week and added:
+
+- How R deals with file paths and reads in data
+- Some simple plotting
+- The table function, for one or two vectors
+- ifelse statements, which return different values depending on a logical test
+- for loops, which are used to run the same code many times while changing only an iteration variable
+- Other miscellaneous functions
+
+
+Online resources you may want to go through to reinforce the R you have learned today include:
+
+- [Cyclismo R Tutorials for Plotting](https://www.cyclismo.org/tutorial/R/plotting.html) 
+- [DataCamp](https://www.datacamp.com/courses/free-introduction-to-r) 
+- [The CRAN manual](https://cran.r-project.org/doc/manuals/R-intro.pdf) (Chapters 7 and 9. Chapter 12 has some fairly detailed content on plotting as well.)
+- [Introduction to R Topic 3](https://ramnathv.github.io/pycon2014-r/visualize/base_graphics.html) 
+- [A more extensive introduction to for loops](https://www.datacamp.com/community/tutorials/tutorial-on-loops-in-r)
+
+There are also many more resources you might find if you search for them on your own. Remember that the more time you spend on R outside of class, the easier your life will be in the second half of this course. You should also be aware that making mistakes is a large part of learning a programming language, so don't be too discouraged when experimenting with R!
+
+Remember you also have access to a lot of broader R resources, while the above ones are specific to today's content:
+
+
+- [An Introduction to R: Software for Statistical Modelling and Computing](http://cran.r-project.org/doc/contrib/Kuhnert+Venables-R_Course_Notes.zip) 
+- [Introduction to the R Project for Statistical Computing for use at ITC](https://cran.r-project.org/doc/contrib/Rossiter-RIntro-ITC.pdf)
+- [Ecological Analysis Labs](http://ecology.msu.montana.edu/labdsv/R/labs/) (first few labs are really good)
+- [Introductory R Notes](http://zoonek2.free.fr/UNIX/48_R/all.html) 
+- [R Cookbook](http://www.cookbook-r.com/)
+- [Reference Card](https://cran.r-project.org/doc/contrib/Short-refcard.pdf)
+
+
+
+
+
+
+
+
+
+
+
