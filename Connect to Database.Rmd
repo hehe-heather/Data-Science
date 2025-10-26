@@ -1,0 +1,95 @@
+---
+title: "Connect to MySQL"
+author: "Heather He"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Connecting to MySQL on local computer
+
+We will need to install and deploy MySQL on our own computer first. 
+```{r}
+library(DBI)
+library(RMySQL)
+
+USER <- 'root'          # user id, created during database installation
+PASSWORD <- 'BBS20244061'  # password, created during database installation
+HOST <- 'localhost'     # leave as localhost - this means "use the PC you are running R on"
+DBNAME <- 'world'       # the database you'd like to connect, created during database installation
+```
+
+
+```{r}
+# run queries
+db <- dbConnect(MySQL(), user = USER, password = PASSWORD, 
+                host = HOST, dbname = DBNAME, port=3306) # connect to database
+
+result <- dbGetQuery(db, statement = "Select * from world.mktcampaign")
+
+dbDisconnect(db) # disconnect when finished using database
+
+head(result)
+```
+
+
+# Quick database example: Connect to Database on a Remote Server
+
+Here we extract data from a MySQL database hosted by a remote server (Amazon AWS remote) 
+```{r install packages}
+
+# install.packages("DBI")
+# install.packages("RMySQL")
+
+library(DBI)
+library(RMySQL)
+
+```
+
+### Set credentials 
+```{r connect}
+
+USER <- 'student'          
+PASSWORD <- 'datacamp' 
+HOST <- 'courses.csrrinzqubik.us-east-1.rds.amazonaws.com'     
+DBNAME <- 'company'      
+
+con <- dbConnect(MySQL(), user = USER, password = PASSWORD, host = HOST, dbname = DBNAME, port=3306)
+
+```
+
+
+### Check the structure of the database
+
+There are three tables in the the company database, use the codes to list out the tables 
+```{r snapshot of database}
+
+# list all the tables in a database 
+tables <- dbListTables(con)
+tables
+
+# list fields in table "employees"
+dbListFields(con, "employees")
+
+# list fields in all tables using a for loop 
+for (tbl in tables) {
+  cat(paste("\nTable:", tbl, "\n"))
+  cat("---------------------------\n")
+  fields <- dbListFields(con, tbl)
+  cat(paste(fields, collapse = "\n"), "\n")
+}
+
+# cat() is used to print text to the console without quotes or any other formatting.
+# "\n" at the end ensures that the next printed output starts on a new line.
+# paste("\nTable:", tbl, "\n") combines the string "Table:" with the table name (tbl) and adds a newline (\n) both before and after the printed table name.
+
+```
+
+
+### Extract data 
+```{r extract data}
+extracted <- dbGetQuery(con, "SELECT * FROM employees LIMIT 5")
+extracted
+```
