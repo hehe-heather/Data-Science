@@ -1,0 +1,236 @@
+---
+title: "4011W4Lab"
+author: "Heather He"
+output:
+  pdf_document:
+    toc: yes
+  html_document:
+    theme: spacelab
+    toc: yes
+---
+
+# R Markdown setup 
+For more details of how to set up RMarkdown, the meaning of echo, eval, please refer to RMDNotes.Rmd
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
+```
+
+# dplyr verbs
+Lets work through the main dplyr verbs and do some piping. 
+
+The main "verbs" or functions of dplyr are:
+
+- filter() to filter a data frame's rows based on logical conditions
+- arrange() to reorder the rows of a data frame based on specified variables
+- select() to select / keep only certain variables / columns
+- rename() to keep all columns and change names of specified columns
+- mutate() to add new variables to a data frame
+- transmute() to create new variables and discard existing ones
+- summarise() to summarise the data frame in some manner
+- sample_n() to randomly sample "n"" rows from a data frame
+- sample_frac() to randomly sample a fraction of the rows from a data frame
+
+There are other functions in dplyr which we will use, but the above are the key ones.
+
+```{r, LetsDoSomeDplyr}
+library(tidyverse) # while the focus would be on dplyr, we could use tidyverse to import most of the commonly used data science packages, including dplyr
+
+```
+
+## Task 1
+Download QueryData.csv from 4061 Blackboard Week 5 folder.
+Store the data in the same folder where this rmd file sits.
+Import the data using the following statements. 
+
+```{r}
+
+QueryData <- read.csv("QueryData.csv")
+
+# Note: to run a single code, put the cursor on the code -> press "CTRL+ENTER"
+```
+
+Inspect the data and cast the variables to proper class where needed. 
+```{r}
+dim(QueryData) 
+tail(QueryData)
+head(QueryData)
+
+# can change data types as required - known as casting
+# you should always check variables are in the correct type (particularly after getting them from a database)
+class(QueryData$AGE)
+QueryData$AGE <- as.numeric(QueryData$AGE) # if AGE is not imported as numeric, do the casting 
+class(QueryData$AGE)
+
+
+```
+
+## Task 2
+1. Rewrite the following codes to Filter QueryData to December or September 
+2. Print the first five rows of the filtered data
+3. Get the number of rows of the filtered data 
+```{r}
+# filter rows in a data frame - filters a data set using logical conditions
+
+#Filter QueryData to Wednesdays in December
+filter(QueryData, DAY_OF_WEEK == "wed", MONTH=="dec")
+
+# print the first few rows of the filtered data 
+head(filter(QueryData, DAY_OF_WEEK == "wed", MONTH=="dec")) 
+
+# slice certain rows 
+slice(QueryData,5:10)                              #'Slice' of the rows of 5 - 10
+
+# Solution
+filtered_data <- filter(QueryData, MONTH == "sep" | MONTH=="dec")
+head(filtered_data, 5)
+nrow(filtered_data)
+
+```
+
+## Task 3
+
+Check the the exemplar code, and write your own code to: 
+1. Select Age, Marital, and Education columns, print the first 6 rows
+2. Select ConsumerPriceIndex column and rename it to CONS_PRICE_IDX, print the first 6 rows. For re-naming a column, you should use:
+**select(df,new_column_name = old_column_name)**
+
+```{r}
+# select columns of interest - subsetting and renaming columns
+
+head(select(QueryData,AGE,MARITAL,LOAN))                       #Select Age, Marital, and Loan columns
+head(select(QueryData,EDUCATION:LOAN))                         #Select columns Education through Loan
+head(select(QueryData,-(EDUCATION:LOAN)))                      #Select columns other than Education through Loan
+head(select(QueryData,contains("CONS")))                       #Select columns with "CONS" in the name
+
+# Solution 
+head(select(QueryData,CONS_PRICE_IDX = ConsumerPriceIndex))
+
+```
+
+### Task 4
+Rewrite the following codes to:
+1. Add a new column for the natural log of AGE, keep both the original and new columns. You should use the mutate function. 
+
+```{r}
+# find distinct (unique) values
+distinct(QueryData,AGE)                   #Return rows with unique ages
+distinct(QueryData,MARITAL,AGE)           #Return rows with unique combinations of Marital and Age
+
+# add new columns (mutate)
+head(mutate(QueryData,                    #Add columns to QueryData , but keep all
+            dur2 = as.numeric(DURATION)*2,      #create dur2 as twice Duration
+            AGE2 = AGE - 10))                   #create Age2 as Age - 10
+
+# only keep the new columns (transmute)
+head(transmute(QueryData,                 #Add columns to QueryData, don't keep all
+               dur2 = as.numeric(DURATION)*2,   #create dur2 as twice Duration
+               AGE2 = AGE - 10))                #create Age2 as Age - 10
+
+# Solution
+head(mutate(QueryData,                    
+            AGE3 = log(AGE)))                   
+
+  
+```
+
+```{r}
+# single row outcome: 
+summarise(QueryData,                      #Summarise QueryData
+          AverageAge=mean(AGE,na.rm=TRUE))      #Want mean of age, with column name "AverageAge"
+
+# random sample
+sample_n(QueryData,10)                            #Randomly sample 10 rows of QueryData
+head(sample_frac(QueryData,0.01))                 #Randomly sample 70% of the rows of QueryData
+head(sample_frac(QueryData,0.01,replace=TRUE))    #Randomly sample 1% of the rows of QueryData with replacement
+
+```
+
+
+### Task 5
+Rewrite the following codes to:
+1. Group the table based on Education
+2. Count rows in each Education group
+3. Calculate the average age in each Education group. Note that you need to remove any NA values by set na.rm to TRUE
+
+```{r}
+# grouping
+byJob <- group_by(QueryData,JOB)                     #Convert QueryData into a grouped table based on JOB
+JobSummary <- summarize(byJob,          #Summarise the table grouped by job
+                        count=n(),       #Count rows in each job group
+                        MedAge=median(AGE,na.rm=TRUE),
+                        .groups="drop")      #Median age in each job group
+
+JobSummary
+filter(JobSummary, MedAge > 30,count < 600)         #Filter to MedAge older than 30, with less than 600 people
+
+
+# Solutions
+# The solution used piping %>%, check the next session for more information about %>%
+QueryData %>%
+  group_by(EDUCATION) %>% 
+  select(AGE,EDUCATION) %>% 
+  summarize(AvgAge = mean(AGE,na.rm=TRUE), Count = n())
+
+```
+
+
+## Piping in dplyr
+
+The dplyr package and functions come with a cool feature called piping operators. These are useful for tasks with multiple stages where you would ordinarily have to use many lines of code with intermediate objects or one long, hard to read line. 
+
+Lets start with a motivating example. We want to group our data by AGE, consider only a subset of the columns, produce a summary, and filter that summary on some logical conditions. 
+
+
+```{r,piping}
+#Lots of lines of code with an intermediate object
+GroupedJob <- group_by(QueryData, JOB)
+GroupedJob <- select(GroupedJob, AGE,EDUCATION:LOAN)
+GroupedJob <- summarize(GroupedJob, AvgAge = mean(AGE,na.rm=TRUE), Count = n())
+GroupedJob <- filter(GroupedJob, Count > 500)
+GroupedJob
+```
+
+We could rewrite the above functions in a more concise and easy to following way With a piping operator "%>%". it allows you to pass the result of one function to the next. E.g. x %>% f(y) = f(x,y). You can extend this to many steps. Below is the code for our earlier example, but with piping operators. Note that it is fairly intuitive to follow, and also doesn't require the use of intermediate objects.
+
+
+```{r,piping2}
+QueryData %>% 
+  group_by(JOB) %>% 
+  select(AGE,EDUCATION:LOAN) %>% 
+  summarize(AvgAge = mean(AGE,na.rm=TRUE), Count = n()) %>% 
+  filter(Count > 500)
+```
+
+# Functions
+
+### Task 6
+Rewrite the following codes to:
+1. Create a function that takes three numbers as inputs and return the product of them 
+2. Name your function as multiplyThreeNumbers
+```{r,SimpleFunction}
+
+# in the following fuctions, the function name is addTwoNumbers
+# the arguments are a and b, could use anything you'd like: x and y, for example 
+addTwoNumbers <- function(a,b)
+{
+temp <- a+b
+return(temp)
+}
+
+
+sumNums <- addTwoNumbers(7,3)
+sumNums
+
+# Solution
+multiplyThreeNumbers <- function(a,b,c)
+{
+temp <- a*b*c
+return(temp)
+}
+
+
+prodNums <- multiplyThreeNumbers(7,3,2)
+prodNums
+
+
+```
