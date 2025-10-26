@@ -1,0 +1,208 @@
+---
+title: "2321W3LabTasks"
+author: "Heather He"
+date: "2025-10-12"
+output: html_document
+---
+
+# Web scraping 
+In this task, we will learn how to use HTML, CSS, HTML elements, and attributes to scrape data from web pages, and how to identify target elements on a webpage: http://books.toscrape.com/catalogue/page-1.html. 
+
+## HTML 
+HTML (HyperText Markup Language) is the language that defines the structure and content of webpages. It uses tags like `<p>`, `<h1>`, or `<div>` to tell browsers what each part of a page is. For example:
+
+
+```{r, eval = FALSE}
+
+<h3>Book Title</h3>
+<p>Price: £23.50</p>
+
+```
+
+where `<h3>` marks a level-3 heading (book title); `<p>` marks a paragraph (price). 
+
+## CSS 
+CSS (Cascading Style Sheets) controls how the webpage looks — the style. It can change colours, fonts, or spacing, etc.
+For example: 
+
+```{r, eval = FALSE}
+.price_color {
+  color: green;
+}
+```
+
+Now if we have this HTML element `<p class="price_color">£51.77</p>`, the browser will show `£51.77` in green text. 
+For scraping, that same class name helps us locate those price elements.
+
+## HTML element
+Every HTML element is made up of an opening tag (e.g. `<p>`), the content (e.g. some text), and a closing tag (e.g. `</p>`). For example, this is an HTML element: `<p>Hello world!</p>`. 
+
+## HTML attribute
+An attribute gives extra information about an element.
+It always appears inside the opening tag. In this example, `<p class="price_color">£51.77</p>`, `class="price_color"` is an attribute. 
+
+## Identify the target on a website
+When scraping, you need to know where in the HTML your desired data sits. Use your browser’s Inspect tool:
+
+- Right-click a webpage element (e.g. the book title).
+- Choose Inspect or Inspect Element.
+- Look for the tag and its class or attribute name.
+
+Example from Books to Scrape:
+
+```{r, eval = FALSE}
+<h3>
+  <a href="book_1.html" title="A Light in the Attic">A Light in the Attic</a>
+</h3>
+<p class="price_color">£51.77</p>
+```
+
+The title is stored in the attribute `title="A Light in the Attic"`. 
+The price is stored in an element with `class = "price_color"` in the opening tag. 
+
+To start the demo, we (install and) library the following packages. 
+
+```{r, results = "hide"}
+# install.packages(c("rvest", "dplyr", "readr"))
+library(rvest) # used for downloading webpage, parsing HTML and selecting specific pieces.
+library(dplyr)
+library(readr)
+```
+In the examplar code below, `read_html()` directly request and parses an HTML page into a structured R object we can navigate and extract data from. Similar to `GET()` but we don't need to convert raw bytes into readable elements or extract `$content`. 
+
+`html_elements()`: Selects all matching HTML elements. It starts by selecting all book containers, which are HTML elements with class "product_pod". Results saved in cards.
+
+`|>` is a pipe function, the same as `%>%` in earlier R versions.
+
+`html_attr()` extract the values from attributes. 
+
+`html_text2()` extracts the displaying text from elements. 
+
+```{r}
+
+url <- "http://books.toscrape.com/catalogue/page-1.html"
+page  <- read_html(url)
+cards <- html_elements(page, ".product_pod")
+title = cards |> html_element("h3 a") |> html_attr("title")
+price = cards |> html_element(".price_color") |> html_text2()
+
+```
+## Task 1
+Now try extracting one more piece of information: the book’s availability.
+Hint: inspect one book on the webpage, you will notice something like `<p class="instock availability"> In stock </p>`, which indicates the book's availability. 
+
+```{r}
+# Solution
+url <- "http://books.toscrape.com/catalogue/page-1.html"
+page  <- read_html(url)
+cards <- html_elements(page, ".product_pod")
+availability <- cards |> html_element(".instock.availability") |> html_text2()
+head(availability)
+```
+
+
+# API
+## Task 2
+In this exercise, you’ll use the "yahoofinancer" package to access data from the Yahoo Finance API. 
+First, create a Ticker object for Tesla (ticker symbol: TSLA) using the following line:
+```{r}
+library(yahoofinancer)
+tsla <- Ticker$new("TSLA")
+```
+
+Next, retrieve data:
+
+  - The past 5 days of trading information with a 30-minute interval.
+  - The 52-week high price for Tesla.
+
+Hint: If you’re unsure which arguments or functions to use, check the package help page using `?Ticker`. 
+
+```{r}
+?Ticker
+tsla$get_history(period = "5d", interval = "30m")
+tsla$previous_close
+```
+
+
+## Task 3
+The following tasks are about pulling data from Bloomberg using R code. These tasks require a Bloomberg Terminal machine. **You will have to use R Studio Desktop. They will not run on personal laptops or R Studio Server. **
+
+
+First, (install and) library the package "Rblpapi". 
+
+```{r}
+# install.packages("Rblpapi")
+library(Rblpapi)
+```
+
+Develop the connection with Bloomberg database using the following line: 
+```{r}
+blpConnect()
+```
+
+*3.1 Bloomberg Data Point Queries.*
+Below you've been provided with demo code on pulling 
+
+  - the most recent traded price at the moment your query runs (`PX_LAST`) and 
+  - real time trading volume as of when you request it volume (`VOLUME`) 
+
+for two equity indices:
+
+  - `UKX Index`: FTSE100 index in UK - the largest/most representative 100 UK companies
+  - `SPX Index`: S&P500 index in US - the largest/most representative 500 US companies.
+
+```{r}
+
+data_point <- bdp(
+  c("UKX Index", "SPX Index"), 
+  c("PX_LAST", "VOLUME")) 
+```
+
+Your task is to pull `PX_LAST`, `VOLUME`, and final price at the end of yesterday’s session (`PX_CLOSE`) for the following three equity indices: 
+
+  - `NDX Index`: Nasdaq 100
+  - `SX5E Index`: Euro Stoxx 50
+  - `NKY Index`: Nikkei 225 (Japan)
+  
+```{r}
+data_point <- bdp(
+  c("NDX Index", "SX5E Index", "NKY Index"), 
+  c("PX_LAST", "VOLUME", "PX_CLOSE")
+)
+```
+
+*3.2 Bloomberg Data History Queries*
+In Section 3.1, we practised retrieving data points. Now, we will move on to retrieving historical data series. Please retrieve the historical `PX_LAST` and `VOLUME`data for the past 31 days for the following three indices: `NDX Index`, `SX5E Index`, and `NKY Index`. 
+
+Hint: The `bdh()` function may be useful for this task.
+
+
+```{r}
+
+# bdh: Bloomberg Data History
+data_series <- bdh(
+  c("NDX Index", "SX5E Index", "NKY Index"), 
+  c("PX_LAST", "VOLUME", "LAST_PRICE"),
+  start.date=Sys.Date()-31)
+
+```
+
+*3.3 Bloomberg Data Set Queries*
+The `bds()` function is used when the field we request returns data in table format — like holdings, ratings, or constituents. For example: 
+
+```{r}
+dataset <- bds("GOOG US Equity", "TOP_20_HOLDERS_PUBLIC_FILINGS")
+```
+where "GOOG US Equity" is the ticker of Alphabet Inc. (Google) stock traded in the U.S. "TOP_20_HOLDERS_PUBLIC_FILINGS" is a Bloomberg reference field that returns the top 20 institutional shareholders based on public regulatory filings.
+
+The task is to retrieve the `TOP_20_HOLDERS_PUBLIC_FILINGS` table for Oracle Corporation ("ORCL US Equity") and Microsoft Corporation ("MSFT US Equity") using the `bds()` function. Save each retrieved table as a separate R object. 
+
+
+
+```{r}
+
+top_holding_orcl <- bds("ORCL US Equity", "TOP_20_HOLDERS_PUBLIC_FILINGS")
+top_holding_msft <- bds("MSFT US Equity", "TOP_20_HOLDERS_PUBLIC_FILINGS")
+
+```
+
