@@ -1,5 +1,5 @@
 ---
-title: "2321W1LabSolutions"
+title: "Introduction to R Coding"
 author: "Heather He "
 output: html_document
 ---
@@ -127,3 +127,4 @@ mtcars[,c(1,3,5)]
 mtcars[13:18,]
 
 ```
+
