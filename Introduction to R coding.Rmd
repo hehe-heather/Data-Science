@@ -1,0 +1,129 @@
+---
+title: "2321W1LabSolutions"
+author: "Heather He "
+output: html_document
+---
+
+# If you have trouble knitting to PDF
+You can always try knitting to html as that is more robust. However, often you want to have the PDF final product (and you need this for your assessment). In that case, if you are getting errors talking about Latex not being installed or pdflatex not available then try
+```{r echo=TRUE, eval=FALSE}
+
+# install.packages("tinytex")
+# tinytex::install_tinytex()
+# tinytex::reinstall_tinytex(repository = "illinois")
+
+```
+
+When knitting the file, it's recommended to click the downward arrow and select the specific output format you prefer.
+
+## Exercises
+
+Here are some exercises to help you practice the concepts and techniques mentioned earlier. It's recommended that you attempt these tasks on your own, typing out the answers, before checking the solutions. Keep in mind that writing code on your own is one of the most crucial steps to develop muscle memory for using the programming language.
+
+From Blackboard - 2321 Data Science - Week 1, download `2321W1LabTasks.Rmd` file, and double click it to open it using RStudio. The following task instructions are also available in the Rmd file. 
+
+- Task 1: Use R to calculate the products of the following two vectors.
+
+    -   vector 1: c(1,2,3,4,5)
+    -   vector 2: c(5,4,3,2,1)
+    
+
+- Task 2: Create an object and name it `myObject`, and store a vector of two words - 'Business' and 'Data' - to the object. Note:
+
+    -   Texts/characters/words must be wrapped by quotation marks. It doesn't matter whether you use double or single - but you need to use it consistently.
+    -   Object name doesn't need to be wrapped by quotation marks.
+
+
+- Task 3: Print the first 6 rows of dataset `mtcars`. The function you will be using is `head()`, the argument of the function is `mtcars`.
+
+
+- Task 4: Using the dataset `mtcars`, take a look at column `hp` (gross horsepower) and calculate the mean of the column. Note that you can use the `\$` operator to pull out specific columns, and use the function `mean()` to calculate the mean.
+
+
+
+- Task 5: Generate a sequence of numbers from 1 to 5 and save it in a variable called `x`
+
+- Task 6: Create a vector containing the words: "R", "for", "Data", "Science".
+
+- Task 7: Run the following code and check whether the output matches your expectation:
+```{r}
+t <- 5
+y <- 5
+z <- 6
+k <- 8
+
+t == y | z > k
+t == y && z > k
+```
+
+- Task 8: Calculate the mean and standard deviation of the vector x (created in Task 5)
+
+- Task 9: Load the dataset mtcars into your working environment. Hint: you may find the function `data()` useful.
+
+- Task 10: Explore the dataset
+  - Print the first six rows and the last six rows of mtcars.
+  - Print the column names of the data frame.
+  - Inspect the structure of mtcars using `str()`.
+  - Generate descriptive statistics for the dataset using `summary()`.
+  
+- Task 11: Calculate the mean of the mpg column in mtcars.
+Hint: you can use `$` to access a column, e.g. `mtcars$mpg`.
+
+- Task 12: Generate a sequence of numbers from 200 to 300 and save it to a variable called `BigVector`. Access the 2nd, 4th, and 6th elements of `BigVector`. 
+  Hint: use square brackets for indexing, e.g. BigVector[2]
+  
+- Task 13: Access the first, third, and fifth columns of the data frame `mtcars`. Access all the columns from row 13 to row 18.
+Hint: use the format mtcars[i, j], where i is the row index and j is the column index.You can keep j as empty if you want to access for the columns. 
+
+# Solutions
+
+```{r,Solutions}
+# Task 1
+c(1,2,3,4,5) * c(5,4,3,2,1)
+
+# note when you perform an operation with a vector and a number, the number will be recycled: 
+c(1,2,3,4,5) * 5  #Recycling
+
+# Task 2
+myObject <- c("Data", "Bangor")
+print(myObject)
+
+# Task 3
+head(mtcars)
+
+# Task 4
+mtcars$hp
+mean(mtcars$hp)
+
+# Task 5
+x <- 1:5
+
+# Task 6
+myVector <- c("R","for","Data","Science")
+print(myVector)
+
+# Task 8
+mean(x)
+str(x)
+
+# Task 9
+data(mtcars)
+
+# Task 10
+head(mtcars)
+tail(mtcars)
+str(mtcars)
+summary(mtcars)
+
+# Task 11
+mean(mtcars$mpg)
+
+# Task 12
+BigVector <- 200:300
+BigVector[c(2,4,6)]
+
+# Task 13
+mtcars[,c(1,3,5)]
+mtcars[13:18,]
+
+```
